@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  html, body, #root {
+    @apply bg-surface text-text-primary font-sans;
+    height: 100%;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* Custom scrollbar for dark theme */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A3340;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-surface font-semibold rounded-xl py-4 px-6 
+           active:scale-[0.98] transition-all duration-150
+           disabled:opacity-40 disabled:active:scale-100;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-card text-text-primary font-medium rounded-xl py-3 px-5 
+           border border-surface-border active:scale-[0.98] transition-all duration-150;
+  }
+
+  .btn-ghost {
+    @apply text-text-secondary active:text-text-primary transition-colors duration-150;
+  }
+
+  .card {
+    @apply bg-surface-card rounded-xl p-4 border border-surface-border;
+  }
+
+  .input-field {
+    @apply bg-surface border border-surface-border rounded-xl px-4 py-3
+           text-text-primary text-lg placeholder:text-text-dim
+           focus:outline-none focus:border-primary transition-colors duration-150;
+  }
+
+  .tab-bar {
+    @apply bg-surface-card/95 backdrop-blur-lg border-t border-surface-border;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Number input hide spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Mobile-friendly tap targets */
+.tap-target {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-rest {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-pulse-rest {
+  animation: pulse-rest 1s ease-in-out infinite;
+}
