@@ -94,11 +94,15 @@ export default function WorkoutPage() {
     if (currentExercise && phase === 'exercising' && currentSetIdx === 0) {
       db.progressionSuggestions
         .where('exerciseId').equals(currentExercise.libraryItem.id)
-        .filter(s => s.accepted && s.increment > 0)
+        .filter(s => s.accepted)
         .last()
         .then(s => {
-          if (s) setProgressionTip(`上次连续两组达标，建议本次尝试 ${formatWeight(s.suggestedWeight)} kg`)
-          else setProgressionTip('')
+          if (!s) { setProgressionTip(''); return }
+          if (s.increment === 0) {
+            setProgressionTip(`💪 上次选择加次数递进，保持 ${formatWeight(s.baseWeight)} kg，尝试每组多做1-2次`)
+          } else {
+            setProgressionTip(`⬆️ 上次连续两组达标，建议本次尝试 ${formatWeight(s.suggestedWeight)} kg`)
+          }
         })
     } else if (currentSetIdx > 0) {
       setProgressionTip('')
@@ -557,6 +561,70 @@ export default function WorkoutPage() {
             </div>
             {currentSet?.weight > 0 && <div className="mt-2 bg-primary/10 text-primary text-sm rounded-lg px-3 py-1.5">建议重量：{formatWeight(currentSet.weight)} kg</div>}
             {progressionTip && <div className="mt-1 bg-yellow-500/10 text-yellow-400 text-xs rounded-lg px-3 py-1.5">{progressionTip}</div>}
+            {/* 组数/次数快速调整 */}
+            <div className="flex gap-3 mt-2 pt-2 border-t border-surface-border/50">
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-text-dim">组数</span>
+                <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm" onClick={async () => {
+                  if (!currentExercise || currentSet?.setType !== 'working') return
+                  const totalWorking = currentExercise.sets.filter(s => s.setType === 'working').length
+                  if (totalWorking <= 1) return
+                  // Remove last working set
+                  const lastWorking = [...currentExercise.sets].reverse().find(s => s.setType === 'working')
+                  if (!lastWorking) return
+                  await db.sessionSets.delete(lastWorking.id)
+                  const updated = exercises.map(ex => {
+                    if (ex.sessionExercise.id !== currentExercise.sessionExercise.id) return ex
+                    return { ...ex, sets: ex.sets.filter(s => s.id !== lastWorking.id) }
+                  })
+                  setExercises(updated)
+                }}>−</button>
+                <span className="text-text-primary w-4 text-center">{currentExercise?.sets.filter(s => s.setType === 'working').length || 0}</span>
+                <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm" onClick={async () => {
+                  if (!currentExercise || currentSet?.setType !== 'working') return
+                  const sid = generateId()
+                  const newSet: SessionSet = {
+                    id: sid, sessionExerciseId: currentExercise.sessionExercise.id,
+                    setIndex: currentExercise.sets.length, setType: 'working',
+                    weight: parseFloat(weightInput) || 0, reps: 0, completed: false,
+                    restSecondsPlanned: currentExercise.templateExercise.restSecondsMin,
+                  }
+                  await db.sessionSets.put(newSet)
+                  const updated = exercises.map(ex => {
+                    if (ex.sessionExercise.id !== currentExercise.sessionExercise.id) return ex
+                    return { ...ex, sets: [...ex.sets, newSet] }
+                  })
+                  setExercises(updated)
+                }}>+</button>
+              </div>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-text-dim">目标次数</span>
+                <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm"
+                  onClick={async () => {
+                    if (!currentExercise) return
+                    const v = Math.max(1, currentExercise.templateExercise.minReps - 1)
+                    await db.workoutTemplateExercises.update(currentExercise.templateExercise.id, { minReps: v })
+                    await db.workoutTemplateExercises.update(currentExercise.templateExercise.id, { maxReps: Math.max(v, currentExercise.templateExercise.maxReps - 1) })
+                    const updated = exercises.map(ex => {
+                      if (ex.sessionExercise.id !== currentExercise.sessionExercise.id) return ex
+                      return { ...ex, templateExercise: { ...ex.templateExercise, minReps: v, maxReps: Math.max(v, ex.templateExercise.maxReps - 1) } }
+                    })
+                    setExercises(updated)
+                  }}>−</button>
+                <span className="text-text-primary w-8 text-center">{currentExercise?.templateExercise.minReps}-{currentExercise?.templateExercise.maxReps}</span>
+                <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm"
+                  onClick={async () => {
+                    if (!currentExercise) return
+                    const v = currentExercise.templateExercise.maxReps + 1
+                    await db.workoutTemplateExercises.update(currentExercise.templateExercise.id, { maxReps: v })
+                    const updated = exercises.map(ex => {
+                      if (ex.sessionExercise.id !== currentExercise.sessionExercise.id) return ex
+                      return { ...ex, templateExercise: { ...ex.templateExercise, maxReps: v } }
+                    })
+                    setExercises(updated)
+                  }}>+</button>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
