@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
   getCycleWeek,
   isDeloadWeek,
@@ -9,40 +9,56 @@ import {
   getCycleEventsForWeek,
 } from '../lib/cycle'
 
+// Variable to control mock count per test
+let mockCount = 0
+
+// Mock Dexie db
+vi.mock('../db/database', () => ({
+  db: {
+    workoutSessions: {
+      filter: () => ({
+        count: async () => mockCount
+      })
+    }
+  }
+}))
+
 describe('getCycleWeek', () => {
-  it('should return week 1 on the start date', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-01-01T00:00:00Z')
+  beforeEach(() => { mockCount = 0 })
+
+  it('should return week 1 with 0 completed sessions', async () => {
+    mockCount = 0
+    const result = await getCycleWeek()
     expect(result).toBe(1)
   })
 
-  it('should return week 2 after 7 days', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-01-08T00:00:00Z')
+  it('should return week 2 after 4 completed sessions', async () => {
+    mockCount = 4
+    const result = await getCycleWeek()
     expect(result).toBe(2)
   })
 
-  it('should return week 5 after 28 days', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-01-29T00:00:00Z')
+  it('should return week 5 after 16 completed sessions', async () => {
+    mockCount = 16
+    const result = await getCycleWeek()
     expect(result).toBe(5)
   })
 
-  it('should return week 8 after 49 days (start of week 8)', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-02-19T00:00:00Z')
+  it('should return week 8 after 28 completed sessions', async () => {
+    mockCount = 28
+    const result = await getCycleWeek()
     expect(result).toBe(8)
   })
 
-  it('should wrap back to week 1 after 56 days (start of second cycle)', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-02-26T00:00:00Z')
+  it('should wrap back to week 1 after 32 completed sessions', async () => {
+    mockCount = 32
+    const result = await getCycleWeek()
     expect(result).toBe(1)
   })
 
-  it('should handle day 63 as week 2 of second cycle', () => {
-    const startDate = '2025-01-01T00:00:00Z'
-    const result = getCycleWeek(startDate, '2025-03-05T00:00:00Z')
+  it('should return week 2 after 36 completed sessions', async () => {
+    mockCount = 36
+    const result = await getCycleWeek()
     expect(result).toBe(2)
   })
 })

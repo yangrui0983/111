@@ -1,18 +1,19 @@
 import { WORKOUT_ORDER } from '../db/seedData'
+import { db } from '../db/database'
 
 /**
- * Calculate the current cycle week based on the start date and completed sessions.
- * The cycle starts at week 1 on the start date.
- * Each completed workout session counts as step forward in the cycle.
- * The cycle itself (weeks 1-8) is based on calendar weeks from start date.
+ * Calculate the current cycle week based on completed training sessions.
+ * Every 4 completed workouts = 1 cycle week.
+ * 8 weeks total per cycle, then resets.
+ * This means cycle progress depends on actual training, not calendar days.
  */
-export function getCycleWeek(startDate: string, referenceDate: string = new Date().toISOString()): number {
-  const start = new Date(startDate)
-  const ref = new Date(referenceDate)
-  const diffMs = ref.getTime() - start.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  const weekNumber = Math.floor(diffDays / 7) + 1
-  // Cycle is 8 weeks, then resets
+export async function getCycleWeek(): Promise<number> {
+  const completedCount = await db.workoutSessions
+    .filter(s => s.isComplete)
+    .count()
+
+  // Every 4 sessions = 1 cycle week
+  const weekNumber = Math.floor(completedCount / 4) + 1
   const cycleWeek = ((weekNumber - 1) % 8) + 1
   return cycleWeek
 }

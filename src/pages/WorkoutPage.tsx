@@ -47,6 +47,7 @@ export default function WorkoutPage() {
   const [startTime] = useState(nowISO())
   // Search state for add/replace dialogs
   const [searchQuery, setSearchQuery] = useState('')
+  const [progressionTip, setProgressionTip] = useState('')
 
   const restTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const advancingRef = useRef(false)
@@ -88,6 +89,19 @@ export default function WorkoutPage() {
       } else {
         setWeightInput('')
       }
+    }
+    // Load progression tip for this exercise
+    if (currentExercise && phase === 'exercising' && currentSetIdx === 0) {
+      db.progressionSuggestions
+        .where('exerciseId').equals(currentExercise.libraryItem.id)
+        .filter(s => s.accepted && s.increment > 0)
+        .last()
+        .then(s => {
+          if (s) setProgressionTip(`上次连续两组达标，建议本次尝试 ${formatWeight(s.suggestedWeight)} kg`)
+          else setProgressionTip('')
+        })
+    } else if (currentSetIdx > 0) {
+      setProgressionTip('')
     }
     // Set reps: empty by default — user types manually
     setRepsInput('')
@@ -145,6 +159,10 @@ export default function WorkoutPage() {
 
     // Pre-fill weights from last session
     for (const we of workout) {
+      const hasSuggestion = await db.progressionSuggestions
+        .where('exerciseId').equals(we.libraryItem.id)
+        .filter(s => s.accepted && s.increment > 0)
+        .last()
       const lastWt = await getLastWeight(we.libraryItem.id)
       if (lastWt !== null) {
         const w = isDeload ? getDeloadWeight(lastWt) : lastWt
@@ -153,12 +171,26 @@ export default function WorkoutPage() {
           await db.sessionSets.update(s.id, { weight: w })
         }
       }
+      // If weight came from a progression suggestion, show a tip on first render
+      if (hasSuggestion && we === workout[0]) {
+        setProgressionTip(`上次连续两组达标，建议本次尝试 ${formatWeight(hasSuggestion.suggestedWeight)} kg`)
+      }
     }
 
     setExercises(workout)
   }
 
   async function getLastWeight(exerciseId: string): Promise<number | null> {
+    // First check if there's an accepted progression suggestion
+    const suggestion = await db.progressionSuggestions
+      .where('exerciseId').equals(exerciseId)
+      .filter(s => s.accepted && s.increment > 0)
+      .last()
+    if (suggestion) {
+      return suggestion.suggestedWeight
+    }
+
+    // Fall back to last actual weight used
     const lastSessions = await db.workoutSessions.filter(s => s.isComplete && s.id !== sessionId).reverse().toArray()
     for (const session of lastSessions) {
       const ex = await db.sessionExercises.where('workoutSessionId').equals(session.id).filter(e => e.exerciseId === exerciseId).first()
@@ -482,7 +514,18 @@ export default function WorkoutPage() {
               <button className="btn-primary w-full" onClick={() => handleProgressionAccept(2.5)}>+2.5 kg</button>
               <button className="btn-primary w-full" onClick={() => handleProgressionAccept(5)}>+5 kg</button>
               <button className="btn-secondary w-full" onClick={() => { const c = prompt('请输入增重(kg):', '2.5'); if (c) handleProgressionAccept(parseFloat(c) || 2.5) }}>自定义增重</button>
-              <button className="text-text-dim text-sm pt-2 block w-full text-center" onClick={() => setProgressionDlg(null)}>暂不加重</button>
+              <button className="btn-secondary w-full" onClick={() => {
+                if (!progressionDlg) return;
+                db.progressionSuggestions.put({
+                  id: generateId(), exerciseId: progressionDlg.exerciseId,
+                  baseWeight: progressionDlg.currentWeight,
+                  suggestedWeight: progressionDlg.currentWeight,
+                  increment: 0, reason: '先加次数递进',
+                  accepted: true, createdAt: nowISO(),
+                });
+                setProgressionDlg(null)
+              }}>先加次数（保持重量，多做1-2次）</button>
+              <button className="text-text-dim text-sm pt-2 block w-full text-center" onClick={() => setProgressionDlg(null)}>暂不处理</button>
             </div>
           </div>
         </div>
@@ -513,6 +556,7 @@ export default function WorkoutPage() {
               </div>
             </div>
             {currentSet?.weight > 0 && <div className="mt-2 bg-primary/10 text-primary text-sm rounded-lg px-3 py-1.5">建议重量：{formatWeight(currentSet.weight)} kg</div>}
+            {progressionTip && <div className="mt-1 bg-yellow-500/10 text-yellow-400 text-xs rounded-lg px-3 py-1.5">{progressionTip}</div>}
           </div>
 
           <div className="space-y-2">

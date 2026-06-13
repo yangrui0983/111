@@ -28,6 +28,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [program, setProgram] = useState<Program | null>(null)
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced')
+  const [cycleWeek, setCycleWeek] = useState(1)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -69,6 +70,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
       setProgram(prog)
 
+      // Calculate cycle week from completed sessions
+      const cw = await getCycleWeek()
+      setCycleWeek(cw)
+
       // Load settings
       let s = await db.userSettings.get('default')
       if (!s) {
@@ -100,7 +105,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const cycleWeek = program ? getCycleWeek(program.cycleStartDate) : 1
   const deload = isDeloadWeek(cycleWeek)
 
   async function initProgram() {

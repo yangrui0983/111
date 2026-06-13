@@ -96,13 +96,18 @@ export default function SummaryPage() {
           <div className="card text-center"><span className="text-text-dim text-xs">正式组数</span><p className="text-xl font-bold mt-1">{session.totalWorkSets ?? 0}</p></div>
         </div>
 
-        {prevSession && (
+        {prevSession ? (
           <div className="card">
             <h3 className="font-semibold mb-2">对比上次{currentName}</h3>
             <div className="space-y-1.5 text-sm">
               <div className="flex justify-between"><span className="text-text-dim">总容量</span><span className={volumeChange !== null && volumeChange > 0 ? 'text-primary' : volumeChange !== null && volumeChange < 0 ? 'text-red-400' : 'text-text-secondary'}>{volumeChange !== null ? `${volumeChange > 0 ? '+' : ''}${volumeChange} kg` : '--'}</span></div>
               <div className="flex justify-between"><span className="text-text-dim">总用时</span><span className={durationChange !== null && durationChange < 0 ? 'text-primary' : durationChange !== null && durationChange > 0 ? 'text-red-400' : 'text-text-secondary'}>{durationChange !== null ? `${durationChange > 0 ? '+' : ''}${formatDuration(Math.abs(durationChange))}` : '--'}</span></div>
             </div>
+          </div>
+        ) : (
+          <div className="card">
+            <h3 className="font-semibold mb-2">首次记录 🎉</h3>
+            <p className="text-text-secondary text-sm">这是你第一次完成{currentName}，继续坚持！</p>
           </div>
         )}
 
@@ -114,7 +119,14 @@ export default function SummaryPage() {
               const chg = prevEx ? ex.volume - prevEx.volume : null
               return (
                 <div key={i} className="bg-surface rounded-lg p-3 border border-surface-border/50">
-                  <div className="flex justify-between items-center"><span className="font-medium">{ex.name}</span>{chg !== null && <span className={`text-xs ${chg > 0 ? 'text-primary' : chg < 0 ? 'text-red-400' : 'text-text-dim'}`}>{chg > 0 ? '+' : ''}{chg} kg</span>}</div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{ex.name}</span>
+                    {chg !== null ? (
+                      <span className={`text-xs ${chg > 0 ? 'text-primary' : chg < 0 ? 'text-red-400' : 'text-text-dim'}`}>{chg > 0 ? '+' : ''}{chg} kg</span>
+                    ) : (
+                      <span className="text-xs text-primary">首次记录</span>
+                    )}
+                  </div>
                   <div className="flex gap-3 mt-1.5 text-xs text-text-secondary"><span>容量 {ex.volume} kg</span><span>最高 {formatWeight(ex.maxWeight)} kg</span>{ex.bestSet && <span>最佳 {ex.bestSet.reps}次@{formatWeight(ex.bestSet.weight)}</span>}</div>
                 </div>
               )
