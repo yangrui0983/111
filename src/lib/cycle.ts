@@ -3,19 +3,28 @@ import { db } from '../db/database'
 
 /**
  * Calculate the current cycle week based on completed training sessions.
- * Every 4 completed workouts = 1 cycle week.
- * 8 weeks total per cycle, then resets.
- * This means cycle progress depends on actual training, not calendar days.
+ * Weeks 1-7: 每 8 次训练 = 1 周（双倍）
+ * Week 8 (减载周): 4 次训练
+ * 一周期共 60 次训练，然后重置
  */
 export async function getCycleWeek(): Promise<number> {
   const completedCount = await db.workoutSessions
     .filter(s => s.isComplete)
     .count()
 
-  // Every 4 sessions = 1 cycle week
-  const weekNumber = Math.floor(completedCount / 4) + 1
-  const cycleWeek = ((weekNumber - 1) % 8) + 1
-  return cycleWeek
+  const normalWeeks = 7       // 1-7 周
+  const sessionsPerWeek = 8   // 每双倍 = 8次/周
+  const deloadSessions = 4    // 减载周 = 4次
+  const totalCycle = normalWeeks * sessionsPerWeek + deloadSessions  // 60
+
+  const pos = completedCount % totalCycle  // 0-59
+
+  // 减载周：最后 4 次训练
+  if (pos >= normalWeeks * sessionsPerWeek) {
+    return 8
+  }
+
+  return Math.floor(pos / sessionsPerWeek) + 1
 }
 
 /**
