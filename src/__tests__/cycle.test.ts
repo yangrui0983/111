@@ -32,32 +32,38 @@ describe('getCycleWeek', () => {
     expect(result).toBe(1)
   })
 
-  it('should return week 2 after 4 completed sessions', async () => {
-    mockCount = 4
+  it('should return week 2 after 8 completed sessions', async () => {
+    mockCount = 8
     const result = await getCycleWeek()
     expect(result).toBe(2)
   })
 
-  it('should return week 5 after 16 completed sessions', async () => {
-    mockCount = 16
+  it('should return week 5 after 32 completed sessions', async () => {
+    mockCount = 32
     const result = await getCycleWeek()
     expect(result).toBe(5)
   })
 
-  it('should return week 8 after 28 completed sessions', async () => {
-    mockCount = 28
+  it('should return week 7 after 48 completed sessions', async () => {
+    mockCount = 48
+    const result = await getCycleWeek()
+    expect(result).toBe(7)
+  })
+
+  it('should return week 8 (deload) after 56 completed sessions', async () => {
+    mockCount = 56
     const result = await getCycleWeek()
     expect(result).toBe(8)
   })
 
-  it('should wrap back to week 1 after 32 completed sessions', async () => {
-    mockCount = 32
+  it('should wrap back to week 1 after 60 completed sessions', async () => {
+    mockCount = 60
     const result = await getCycleWeek()
     expect(result).toBe(1)
   })
 
-  it('should return week 2 after 36 completed sessions', async () => {
-    mockCount = 36
+  it('should return week 2 after 68 completed sessions', async () => {
+    mockCount = 68
     const result = await getCycleWeek()
     expect(result).toBe(2)
   })
