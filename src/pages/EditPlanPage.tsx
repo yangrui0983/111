@@ -50,18 +50,24 @@ export default function EditPlanPage() {
   async function handleAdd(exerciseId: string) {
     const lib = allLib.find(l => l.id === exerciseId)
     if (!lib) return
+    const sets = parseInt(prompt('正式组数:', '4') || '4', 10)
+    const repsMin = parseInt(prompt('最少次数:', '8') || '8', 10)
+    const repsMax = parseInt(prompt('最多次数:', '12') || '12', 10)
+    const restMin = parseInt(prompt('最小休息(秒):', '60') || '60', 10)
+    const restMax = parseInt(prompt('最大休息(秒):', '90') || '90', 10)
+    const warmup = parseInt(prompt('热身组数:', '1') || '1', 10)
     const wte: WorkoutTemplateExercise = {
       id: generateId(),
       workoutTemplateId: templateId!,
       exerciseId: lib.id,
       displayName: lib.name,
       orderIndex: wtes.length + 1,
-      targetSets: 3,
-      minReps: 8,
-      maxReps: 12,
-      restSecondsMin: 60,
-      restSecondsMax: 90,
-      warmupSets: 1,
+      targetSets: Math.max(1, sets),
+      minReps: Math.max(1, repsMin),
+      maxReps: Math.max(repsMin, repsMax),
+      restSecondsMin: Math.max(10, restMin),
+      restSecondsMax: Math.max(restMin, restMax),
+      warmupSets: Math.max(0, warmup),
       warmupPercent: 50,
       isEachSide: false,
     }
