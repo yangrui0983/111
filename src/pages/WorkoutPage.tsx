@@ -566,22 +566,25 @@ export default function WorkoutPage() {
               <div className="flex items-center gap-1 text-xs">
                 <span className="text-text-dim">组数</span>
                 <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm" onClick={async () => {
-                  if (!currentExercise || currentSet?.setType !== 'working') return
-                  const totalWorking = currentExercise.sets.filter(s => s.setType === 'working').length
-                  if (totalWorking <= 1) return
-                  // Remove last working set
-                  const lastWorking = [...currentExercise.sets].reverse().find(s => s.setType === 'working')
-                  if (!lastWorking) return
-                  await db.sessionSets.delete(lastWorking.id)
+                  if (!currentExercise) return
+                  // 删除当前正在记录的这组（正式组）
+                  const ws = currentExercise.sets.filter(s => s.setType === 'working')
+                  if (ws.length <= 1) return
+                  const currentWorkingId = currentSet?.id || ws[ws.length - 1].id
+                  await db.sessionSets.delete(currentWorkingId)
                   const updated = exercises.map(ex => {
                     if (ex.sessionExercise.id !== currentExercise.sessionExercise.id) return ex
-                    return { ...ex, sets: ex.sets.filter(s => s.id !== lastWorking.id) }
+                    return { ...ex, sets: ex.sets.filter(s => s.id !== currentWorkingId) }
                   })
                   setExercises(updated)
+                  // 如果删的是当前组，回退一组
+                  if (currentSet?.id === currentWorkingId && currentSetIdx > 0) {
+                    setCurrentSetIdx(prev => prev - 1)
+                  }
                 }}>−</button>
                 <span className="text-text-primary w-4 text-center">{currentExercise?.sets.filter(s => s.setType === 'working').length || 0}</span>
                 <button className="w-7 h-7 rounded bg-surface-border/50 text-text-primary text-sm" onClick={async () => {
-                  if (!currentExercise || currentSet?.setType !== 'working') return
+                  if (!currentExercise) return
                   const sid = generateId()
                   const newSet: SessionSet = {
                     id: sid, sessionExerciseId: currentExercise.sessionExercise.id,
